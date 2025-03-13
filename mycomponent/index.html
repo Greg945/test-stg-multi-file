@@ -1,0 +1,101 @@
+<html>
+  <body>
+    <!-- Set up your HTML here -->
+    <input id="myinput" value="" hidden />
+    <script>
+      // ----------------------------------------------------
+      // Just copy/paste these functions as-is:
+      
+      function sendMessageToStreamlitClient(type, data) {
+        var outData = Object.assign({
+          isStreamlitMessage: true,
+          type: type,
+        }, data);
+        window.parent.postMessage(outData, "*");
+      }
+
+      function init() {
+        sendMessageToStreamlitClient("streamlit:componentReady", {apiVersion: 1});
+      }
+
+      function setFrameHeight(height) {
+        sendMessageToStreamlitClient("streamlit:setFrameHeight", {height: height});
+      }
+
+      // The `data` argument can be any JSON-serializable value.
+      function sendDataToPython(data) {
+        sendMessageToStreamlitClient("streamlit:setComponentValue", data);
+      }
+
+      // ----------------------------------------------------
+      // Now modify this part of the code to fit your needs:
+
+      console.log("start")
+      
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {{
+          streamlitelement.value = "Speech Recognition API wird von diesem Browser nicht unterstützt.";
+      }}
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'de-DE';
+      recognition.maxAlternatives = 1
+
+      recognition.onresult = (event) => {
+          console.log(event.results)
+          console.log(event.results[event.results.length - 1][0].transcript)
+          sendDataToPython({
+          value: event.results[event.results.length - 1][0].transcript,
+          dataType: "json",
+          });
+      };
+
+      recognition.onerror = (event) => {
+          console.log("Error: " + event.error);
+          recognition.stop(); // Stop recognition on error
+      };
+      recognition.start();
+      
+
+      var myInput = document.getElementById("myinput");
+
+      // data is any JSON-serializable value you sent from Python,
+      // and it's already deserialized for you.
+      function onDataFromPython(event) {
+        if (event.data.type !== "streamlit:render") return;
+        myInput.value = event.data.args.my_input_value;
+        if (myInput.value == "change") {
+          console.log('Custom event empfangen:')
+        }  // Access values sent from Python here!
+      }
+
+      window.parent.addEventListener('streamlit:customEvent', function (event) {
+            console.log('Custom event empfangen:', event.detail);
+        });
+
+      myInput.addEventListener("change", function() {
+        sendDataToPython({
+          value: "myInput.value",
+          dataType: "json",
+        });
+      })
+
+       //Hook things up!
+      window.addEventListener("message", onDataFromPython);
+      init();
+
+       //Hack to autoset the iframe height.
+      window.addEventListener("load", function() {
+        window.setTimeout(function() {
+          setFrameHeight(document.documentElement.clientHeight)
+        }, 0);
+      });
+
+      // Optionally, if the automatic height computation fails you, give this component a height manually
+      // by commenting out below:
+      //setFrameHeight(200);
+    </script>
+  </body>
+</html>
