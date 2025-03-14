@@ -6,9 +6,10 @@ from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import random
 import json
 import os
-import time
 from threading import Timer
-
+import csv
+import datetime
+import time
 
 
 client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
@@ -30,10 +31,12 @@ if 'language_code' not in st.session_state:
     st.session_state['language_code'] = 'de-DE'
 
 if "context" not in st.session_state:
-    st.session_state.context = [{"role": "user", "content": "hallo"}]  #load_chat_history()
+    st.session_state.context = []
 
 
-CHAT_FILE = "chat_history.json"
+
+
+
 
 DEFAULT_LANGUAGE = "de-DE"
 API_DELAY = 5  # Sekunden
@@ -44,17 +47,57 @@ SYS_INSTRUCT = ('Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn
                 'den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage brauchst.')
 
 
+def lade_stundenplan(datei="stundenplan.csv"):
+    stundenplan = []
+    with open(datei, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            start = datetime.datetime.strptime(row["Start"], "%H:%M").time()
+            ende = datetime.datetime.strptime(row["Ende"], "%H:%M").time()
+            stundenplan.append({"Start": start, "Ende": ende, "Fach": row["Fach"], "Tag": row["Tag"]})
+    return stundenplan
 
-def load_chat_history():
+def aktuelles_fach():
+    jetzt = datetime.datetime.now()
+    aktueller_tag = jetzt.strftime("%A")
+    aktuelle_zeit = jetzt.time()
+    for eintrag in st.session_state.stundenplan:
+        if eintrag["Tag"] == aktueller_tag and eintrag["Start"] <= aktuelle_zeit < eintrag["Ende"]:
+            return eintrag["Fach"]
+    return ""
+
+if "stundenplan" not in st.session_state:
+    st.session_state.stundenplan = lade_stundenplan()
+
+def save_chat_history(context):
+
+    CHAT_FILE = "history/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
     try:
-        with open(CHAT_FILE, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
+        with open(CHAT_FILE, 'w', encoding='utf-8') as f:
+            json.dump(context, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        st.error(f"Fehler beim Speichern des Chat-Verlaufs: {e}")
 
-def save_chat_history(chat_history):
-    with open(CHAT_FILE, "w") as f:
-        json.dump(chat_history, f)
+# def load_chat_history():
+#     try:
+#         if os.path.exists(CHAT_FILE):
+#             with open(CHAT_FILE, 'r', encoding='utf-8') as f:
+#                 return json.load(f)
+#     except Exception as e:
+#         st.error(f"Fehler beim Laden des Chat-Verlaufs: {e}")
+#     return [{"role": "user", "content": "hallo"}]  # Standardwert falls keine Historie existiert
+
+# def load_chat_history():
+#     try:
+#         with open(CHAT_FILE, "r") as f:
+#             return json.load(f)
+#     except FileNotFoundError:
+#         return []
+
+# def save_chat_history(chat_history):
+#     with open(CHAT_FILE, "w") as f:
+#         json.dump(chat_history, f)
+
 
 
 def gemini_request(text):
@@ -75,37 +118,20 @@ def gemini_request(text):
         response_text = f"Fehler bei der API-Anfrage: {e}"
         st.error(response_text)
 
-    st.session_state.context.append({"role": "user", "content": text})
-    st.session_state.context.append({"role": "assistant", "content": response_text})
+    st.session_state.context.append({"user": text, "assistant": response_text})
 
-    # save_chat_history(st.session_state.context)
-    st.session_state.response = response_text
-    st.text_area("Antwort:", st.session_state.response, height=100)
+    save_chat_history(st.session_state.context)
+    st.text_area("Antwort:", response_text, height=100)
     print('Apicall for:', text)
     print(response_text)
 
 
 
-def reset_flag():
-    global is_waiting
-    print("Waiting befor reset: ", is_waiting)
-    is_waiting = False #geht bviellcit irgendwie nicht?
-    print("reset after: ", is_waiting)
-    mycomponent(my_input_value="change")
-    event_daten = {"message": "Hallo von Streamlit!"}
-    components.html(f"""
-        <script>
-            window.dispatchEvent(new CustomEvent('streamlit:customEvent', {{detail: {event_daten}}}));
-        </script>
-    """)
-    print("Ereignis ausgelöst!")
-    #if st.session_state.queue != []:
-    #    delayed_api_call()
-
 
 def lang_switch():
     language_codes = {"Deutsch": "de-DE", "Englisch": "en-GB", "Französisch": "fr-FR"}
     st.session_state.language_code = language_codes.get(st.session_state.sprache, DEFAULT_LANGUAGE)
+
 
 
 ##################################  UI  #########################################
@@ -133,6 +159,7 @@ if st.button("Senden"):
 if st.button("Clear Session State"):
     for key in st.session_state.keys():
         del st.session_state[key]
+    st.rerun()
 
 st.checkbox("Google-Suche aktivieren", key="search")
 
@@ -150,3 +177,4 @@ if st.checkbox("Verlauf anzeigen"):
 
 #if st.button("Session State"):
 st.write(st.session_state)
+
