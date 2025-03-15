@@ -139,13 +139,13 @@ def lang_switch():
 
 
 
-settings = st.Page("pages/settings.py", title="Settings", icon=":material/settings:")
-photo = st.Page("pages/settings.py", title="Photo", icon=":material/camera:")
-stg = st.Page("pages/stg.py", title="STG", icon=":material/camera:")
+settings = st.Page("seiten/settings.py", title="Settings", icon=":material/settings:")
+photo = st.Page("seiten/settings.py", title="Photo", icon=":material/camera:")
+stg = st.Page("seiten/stg.py", title="STG", icon=":material/camera:")
 
 st.logo("images/horizontal_blue.png", icon_image="images/icon_blue.png")
 
-pg = st.navigation(["pages/stg.py", "pages/settings.py", "pages/photo.py"])
+pg = st.navigation(["seiten/stg.py", "seiten/settings.py", "seiten/photo.py"])
 pg.run()
 
 
