@@ -16,30 +16,16 @@ client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
 
 google_search_tool = Tool(google_search=GoogleSearch())
 
-lever_mycomp = 0
+
 if 'search' not in st.session_state:
-    st.session_state['search'] = False
+    st.session_state.search = False
 
-if 'response' not in st.session_state:
-    st.session_state['response'] = ''
-
-
-if 'sprache' not in st.session_state:
-    st.session_state['sprache'] = 'Deutsch'
-
-if 'language_code' not in st.session_state:
-    st.session_state['language_code'] = 'de-DE'
 
 if "context" not in st.session_state:
     st.session_state.context = []
 
 
-
-
-
-
 DEFAULT_LANGUAGE = "de-DE"
-API_DELAY = 5  # Sekunden
 
 # Systemanweisung für Gemini
 SYS_INSTRUCT = ('Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. '
@@ -70,11 +56,23 @@ if "stundenplan" not in st.session_state:
     st.session_state.stundenplan = lade_stundenplan()
 
 def save_chat_history(context):
-
-    CHAT_FILE = "history/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
+    print("week: ", datetime.date.today().isocalendar().week , " year: ", datetime.date.today().year)
+    week_dir = "history/" + str(datetime.date.today().isocalendar().week)
+    CHAT_FILE = week_dir + "/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
+    
     try:
+        # Erstelle den history-Ordner, falls er nicht existiert
+        if not os.path.exists("history"):
+            os.makedirs("history")
+            
+        # Erstelle den Wochen-Ordner, falls er nicht existiert
+        if not os.path.exists(week_dir):
+            os.makedirs(week_dir)
+            
+        # Erstelle oder aktualisiere die JSON-Datei
         with open(CHAT_FILE, 'w', encoding='utf-8') as f:
             json.dump(context, f, ensure_ascii=False, indent=2)
+            
     except Exception as e:
         st.error(f"Fehler beim Speichern des Chat-Verlaufs: {e}")
 
@@ -121,31 +119,48 @@ def gemini_request(text):
     st.session_state.context.append({"user": text, "assistant": response_text})
 
     save_chat_history(st.session_state.context)
-    st.text_area("Antwort:", response_text, height=100)
     print('Apicall for:', text)
     print(response_text)
+    return response_text
 
 
 
 
 def lang_switch():
     language_codes = {"Deutsch": "de-DE", "Englisch": "en-GB", "Französisch": "fr-FR"}
-    st.session_state.language_code = language_codes.get(st.session_state.sprache, DEFAULT_LANGUAGE)
+    if st.session_state.sprache != None:
+        st.session_state.language_code = language_codes.get(st.session_state.sprache, DEFAULT_LANGUAGE)
+    else:
+        st.session_state.language_code = language_codes.get(aktuelles_fach(), DEFAULT_LANGUAGE)
 
 
 
 ##################################  UI  #########################################
 
+
+
+settings = st.Page("pages/settings.py", title="Settings", icon=":material/settings:")
+photo = st.Page("pages/settings.py", title="Photo", icon=":material/camera:")
+stg = st.Page("pages/stg.py", title="STG", icon=":material/camera:")
+
+st.logo("images/horizontal_blue.png", icon_image="images/icon_blue.png")
+
+pg = st.navigation(["pages/stg.py", "pages/settings.py", "pages/photo.py"])
+pg.run()
+
+
 st.title("STG")
 
 
-st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", on_change=lang_switch)
+st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", index=None, on_change=lang_switch, placeholder="Default: Automatic")
 
 
 if st.toggle("STT?"):
+    lang_switch()
     value = mycomponent(language=st.session_state.language_code)
     st.write("Received", value)
-    gemini_request(value)
+    
+    st.text_area(f"Antwort  auf speech:", gemini_request(value), height=100)
 
 
 
@@ -153,7 +168,7 @@ text_input = st.text_input("Oder Eingabe per Tastatur", key="text_input")
 
 if st.button("Senden"):
     if text_input:
-        gemini_request(text_input)
+        st.text_area(f"Antwort  auf text input:", gemini_request(text_input), height=100)
 
 
 if st.button("Clear Session State"):
@@ -167,7 +182,7 @@ if st.button("Zufällige Frage testen"):
     test_prompts = ["Apfel", "Was ist die Hauptstadt von Berlin?", "Kirsche", "Hallo", "Wie hoch ist der Eiffelturm"]
     value = random.choice(test_prompts)
     st.write("Received", value)
-    gemini_request(value)
+    st.text_area(f"Antwort  auf random:", gemini_request(value), height=100)
 
 
 st.link_button("Close", "https://login.schulportal.hessen.de/?url=aHR0cHM6Ly9jb25uZWN0LnNjaHVscG9ydGFsLmhlc3Nlbi5kZS8=&skin=sp&i=5120")
