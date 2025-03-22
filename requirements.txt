@@ -1,2 +1,5 @@
 streamlit
 google-genai
+deepgram-sdk
+pyaudio
+python-dotenv
