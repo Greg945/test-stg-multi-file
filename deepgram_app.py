@@ -10,6 +10,7 @@ import threading
 import csv
 import datetime
 import time
+import httpx
 
 from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
 from deepgram.utils import verboselogs
@@ -34,6 +35,9 @@ if 'search' not in st.session_state:
 
 if "context" not in st.session_state:
     st.session_state.context = []
+
+if "output" not in st.session_state:
+    st.session_state.output = ""
 
 
 DEFAULT_LANGUAGE = "de-DE"
@@ -130,6 +134,8 @@ def gemini_request(text):
     st.session_state.context.append({"user": text, "assistant": response_text})
 
     save_chat_history(st.session_state.context)
+
+    st.session_state.output = response_text
     print('Apicall for:', text)
     print(response_text)
     return response_text
@@ -152,8 +158,9 @@ DEEPGRAM_API_KEY = "861ef76d80da6f7535d9f3361dd139e2dd26a24d"
 
 is_finals = []
 
+output_box = st.text_area(f"Antwort  auf text input:{st.session_state.output}", height=100)
 
-def main():
+def stt():
     try:
         # example of setting up a client config. logging values: WARNING, VERBOSE, DEBUG, SPAM
         # config = DeepgramClientOptions(
@@ -161,36 +168,48 @@ def main():
         # )
         # deepgram: DeepgramClient = DeepgramClient("", config)
         # otherwise, use default config
-        deepgram: DeepgramClient = DeepgramClient(DEEPGRAM_API_KEY)
+        config = DeepgramClientOptions(
+        options={"keepalive": "true"}
+        )
+        deepgram: DeepgramClient = DeepgramClient(DEEPGRAM_API_KEY, config)
 
-        dg_connection = deepgram.listen.live.v("1")
+        dg_connection = deepgram.listen.websocket.v("1")
         ctx = get_script_run_ctx()
 
 
 
         def on_open(self, open, **kwargs):
+            add_script_run_ctx(threading.current_thread(), ctx)
             print("Connection Open")
+            st.info(
+                "Use the 'Stop' button at the top right to stop transcription",
+                icon="⏹️",
+            )
+            st.info("Starting transcription...")
+            st.toast('This is a warning', icon="⚠️")
 
         def on_message(self, result, **kwargs):
-            global is_finals
+            global is_finals, output_box
+            print("message")
             add_script_run_ctx(threading.current_thread(), ctx)
             sentence = result.channel.alternatives[0].transcript
             if len(sentence) == 0:
                 return
+            if len(sentence) > 0:
+                st.text(sentence)
+                print(sentence)
             if result.is_final:
                 
                 # We need to collect these and concatenate them together when we get a speech_final=true
                 # See docs: https://developers.deepgram.com/docs/understand-endpointing-interim-results
                 is_finals.append(sentence)
-
                 # Speech Final means we have detected sufficient silence to consider this end of speech
                 # Speech final is the lowest latency result as it triggers as soon an the endpointing value has triggered
                 if result.speech_final:
                     utterance = " ".join(is_finals)
                     print(f"Speech Final: {utterance}")
                     st.write(f"Speech Final: {utterance}")
-    
-                    st.text_area(f"Antwort  auf speech:", gemini_request(utterance), height=100)
+                    output_box.text_area(f"Antwort  auf text input:", gemini_request(utterance), height=100)
                     is_finals = []
                 else:
                     # These are useful if you need real time captioning and update what the Interim Results produced
@@ -228,18 +247,16 @@ def main():
             model="nova-2",
             language=st.session_state.language_code,
             diarize=True,
-            dictation=True,
-            punctuate=True,
             # Apply smart formatting to the output
             smart_format=True,
             # Raw audio format details
             encoding="linear16",
             channels=1,
             sample_rate=16000,
-            # To get UtteranceEnd, the following must be set:
-            interim_results=True,
-            utterance_end_ms="1000",
-            vad_events=True,
+            # # To get UtteranceEnd, the following must be set:
+            # interim_results=True,
+            # utterance_end_ms="1000",
+            # vad_events=True,
             # Time in milliseconds of silence to wait for before finalizing speech
             endpointing=300,
         )
@@ -253,6 +270,8 @@ def main():
         if dg_connection.start(options, addons=addons) is False:
             print("Failed to connect to Deepgram")
             return
+        
+        
 
         # Open a microphone stream on the default input device
         microphone = Microphone(dg_connection.send)
@@ -260,14 +279,21 @@ def main():
         # start microphone
         microphone.start()
 
-        # wait until finished
+
+        input("")
+
+        # # wait until finished
         if st.button("STT Stop"):
+            
             # Wait for the microphone to close
             microphone.finish()
 
             # Indicate that we've finished
             dg_connection.finish()
+
+            
             print("Finished")
+            st.success("Finished")
             # sleep(30)  # wait 30 seconds to see if there is any additional socket activity
             # print("Really done!")
 
@@ -295,8 +321,8 @@ st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", i
 
 if st.button("STT Start"):
     lang_switch()
-    main()
-    
+    stt()
+
 
 
 
@@ -304,7 +330,8 @@ text_input = st.text_input("Oder Eingabe per Tastatur", key="text_input")
 
 if st.button("Senden"):
     if text_input:
-        st.text_area(f"Antwort  auf text input:", gemini_request(text_input), height=100)
+        output_box.text_area(f"Antwort  auf text input:", gemini_request(text_input), height=100)
+        
 
 
 if st.button("Clear Session State"):
@@ -318,7 +345,7 @@ if st.button("Zufällige Frage testen"):
     test_prompts = ["Apfel", "Was ist die Hauptstadt von Berlin?", "Kirsche", "Hallo", "Wie hoch ist der Eiffelturm"]
     value = random.choice(test_prompts)
     st.write("Received", value)
-    st.text_area(f"Antwort  auf random:", gemini_request(value), height=100)
+    output_box.text_area(f"Antwort  auf text input:", gemini_request(value), height=100)
 
 
 st.link_button("Close", "https://login.schulportal.hessen.de/?url=aHR0cHM6Ly9jb25uZWN0LnNjaHVscG9ydGFsLmhlc3Nlbi5kZS8=&skin=sp&i=5120")
