@@ -158,8 +158,6 @@ DEEPGRAM_API_KEY = "861ef76d80da6f7535d9f3361dd139e2dd26a24d"
 
 is_finals = []
 
-output_box = st.text_area(f"Antwort  auf text input:{st.session_state.output}", height=100)
-
 def stt():
     try:
         # example of setting up a client config. logging values: WARNING, VERBOSE, DEBUG, SPAM
@@ -209,7 +207,7 @@ def stt():
                     utterance = " ".join(is_finals)
                     print(f"Speech Final: {utterance}")
                     st.write(f"Speech Final: {utterance}")
-                    output_box.text_area(f"Antwort  auf text input:", gemini_request(utterance), height=100)
+                    st.text_area(f"Antwort  auf text input:{gemini_request(utterance)}", height=100)
                     is_finals = []
                 else:
                     # These are useful if you need real time captioning and update what the Interim Results produced
@@ -323,14 +321,14 @@ if st.button("STT Start"):
     lang_switch()
     stt()
 
-
+st.text_area(f"Antwort  auf text input:{st.session_state.output}", height=100, value=st.session_state.output)
 
 
 text_input = st.text_input("Oder Eingabe per Tastatur", key="text_input")
 
 if st.button("Senden"):
     if text_input:
-        output_box.text_area(f"Antwort  auf text input:", gemini_request(text_input), height=100)
+        st.text_area(f"Antwort  auf text input:{gemini_request(text_input)}", height=100)
         
 
 
@@ -345,7 +343,7 @@ if st.button("Zufällige Frage testen"):
     test_prompts = ["Apfel", "Was ist die Hauptstadt von Berlin?", "Kirsche", "Hallo", "Wie hoch ist der Eiffelturm"]
     value = random.choice(test_prompts)
     st.write("Received", value)
-    output_box.text_area(f"Antwort  auf text input:", gemini_request(value), height=100)
+    st.text_area(f"Antwort  auf text input:{gemini_request(value)}", height=100)
 
 
 st.link_button("Close", "https://login.schulportal.hessen.de/?url=aHR0cHM6Ly9jb25uZWN0LnNjaHVscG9ydGFsLmhlc3Nlbi5kZS8=&skin=sp&i=5120")
