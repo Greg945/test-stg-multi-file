@@ -21,7 +21,6 @@ from deepgram import (
     LiveOptions,
     Microphone,
 )
-import pyaudio
 
 
 client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
