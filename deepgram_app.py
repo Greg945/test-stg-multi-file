@@ -1,6 +1,5 @@
 import streamlit as st
 from time import sleep
-import logging
 from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import random
@@ -10,10 +9,11 @@ import threading
 import csv
 import datetime
 import time
-import httpx
+
+from streamlit_webrtc import webrtc_streamer
+
 
 from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
-from deepgram.utils import verboselogs
 from deepgram import (
     DeepgramClient,
     DeepgramClientOptions,
@@ -173,7 +173,7 @@ def stt():
         dg_connection = deepgram.listen.websocket.v("1")
         ctx = get_script_run_ctx()
 
-
+        
 
         def on_open(self, open, **kwargs):
             add_script_run_ctx(threading.current_thread(), ctx)
@@ -186,7 +186,8 @@ def stt():
             st.toast('This is a warning', icon="⚠️")
 
         def on_message(self, result, **kwargs):
-            global is_finals, output_box
+            global is_finals
+            output_box = st.empty()
             print("message")
             add_script_run_ctx(threading.current_thread(), ctx)
             sentence = result.channel.alternatives[0].transcript
@@ -206,7 +207,7 @@ def stt():
                     utterance = " ".join(is_finals)
                     print(f"Speech Final: {utterance}")
                     st.write(f"Speech Final: {utterance}")
-                    st.text_area(f"Antwort  auf text input:{gemini_request(utterance)}", height=100)
+                    output_box.write(f"Antwort  auf text input:{gemini_request(utterance)}")
                     is_finals = []
                 else:
                     # These are useful if you need real time captioning and update what the Interim Results produced
@@ -268,13 +269,19 @@ def stt():
             print("Failed to connect to Deepgram")
             return
         
-        
+        webrtc_ctx = webrtc_streamer(
+            key="speech-to-text",
+            #mode=WebRtcMode.SENDONLY,
+            #audio_receiver_size=1024,
+            audio_frame_callback=dg_connection.send,
+            media_stream_constraints={"video": False, "audio": True},
+        )
 
         # Open a microphone stream on the default input device
-        microphone = Microphone(dg_connection.send)
+        #microphone = Microphone(dg_connection.send)
 
         # start microphone
-        microphone.start()
+        #microphone.start()
 
 
         input("")
