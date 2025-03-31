@@ -143,9 +143,8 @@ settings = st.Page("seiten/settings.py", title="Settings", icon=":material/setti
 photo = st.Page("seiten/settings.py", title="Photo", icon=":material/camera:")
 stg = st.Page("seiten/stg.py", title="STG", icon=":material/camera:")
 
-st.logo("images/horizontal_blue.png", icon_image="images/icon_blue.png")
 
-pg = st.navigation(["seiten/stg.py", "seiten/settings.py", "seiten/photo.py"])
+pg = st.navigation(["seiten/stg.py", "seiten/settings.py", "seiten/photo.py"], expanded=False)
 pg.run()
 
 
