@@ -34,7 +34,7 @@ def gemini_request(text, picture, file):
 
     st.session_state.context.append({"user": text, "assistant": response_text})
 
-    save_chat_history(st.session_state.context)
+    #save_chat_history(st.session_state.context)
     print('Apicall for:', text)
     print(response_text)
     return response_text
