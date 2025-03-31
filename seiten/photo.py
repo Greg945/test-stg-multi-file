@@ -73,9 +73,9 @@ st.write("Prompt:", prompt)
   
 if st.button("Submit"):
     if picture:
-        gemini_request(prompt, picture)
+        gemini_request(prompt, picture, None)
     elif uploaded_file:
-        gemini_request(prompt, uploaded_file)
+        gemini_request(prompt, None, uploaded_file)
 
 #if uploaded_file is not None:
 #    for file in uploaded_file:
