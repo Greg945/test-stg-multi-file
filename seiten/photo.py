@@ -1,7 +1,8 @@
 import streamlit as st
 from google import genai
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
-
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, Image
+import io
+import base64
 
 client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
 
@@ -18,6 +19,18 @@ def gemini_request(text, picture, file):
     #context = st.session_state.context
     #search_enabled=st.session_state.get("search", False)
     try:
+        contents = [text]
+        if picture:
+            image_bytes = picture.getvalue()
+            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+            contents.append(Image(mime_type="image/jpeg", data=base64_image))
+        elif file:
+            for uploaded_file in file:
+                bytes_data = uploaded_file.read()
+                contents.append({
+                    "mime_type": uploaded_file.type,
+                    "data": bytes_data
+                })
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             config=GenerateContentConfig(
@@ -25,7 +38,7 @@ def gemini_request(text, picture, file):
                 #tools=[google_search_tool] if search_enabled else [],
                 response_modalities=["TEXT"]
             ),
-            contents=[text, picture] if picture else [text, file],
+            contents=contents,
         )
         response_text = response.text.strip()
     except Exception as e:
