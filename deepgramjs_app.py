@@ -2,7 +2,7 @@ import streamlit as st
 from deepgramcomp import deepgramcomp
 import streamlit.components.v1 as components
 from google import genai
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, Part
 import random
 import json
 import os
@@ -10,6 +10,8 @@ from threading import Timer
 import csv
 import datetime
 import time
+import PIL 
+import io
 
 
 client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
@@ -98,29 +100,51 @@ def save_chat_history(context):
 
 
 
-def gemini_request(text):
+def gemini_request(text, type="speech", file=None):
     context = st.session_state.context
-    search_enabled=st.session_state.get("search", False)
+    search_enabled = st.session_state.get("search", False)
     try:
-        response = client.models.generate_content(
+        if type == "speech":
+            content_parts = f'Konversations Verlauf:"{context}" Das hier ist das gehörte im Klassenraum: {text}'
+        elif type == "custom":
+            content_parts = f'Konversations Verlauf:"{context}" User eingabe: "{text}"'
+        elif type == "file":
+            for image in file:
+                buffer = io.BytesIO()
+                PIL.Image.open(image).save(buffer, format="JPEG") 
+                image_input = PIL.Image.open(buffer)
+                content_parts = [f'Konversations Verlauf:"{context}" User eingabe: "{text}"', image_input]
+        else:
+             # Fallback oder Fehlerbehandlung, falls 'type' ungültig ist
+             st.error(f"Unbekannter Anfragetyp: {type}")
+             return "Interner Fehler: Unbekannter Anfragetyp."
+        
+        if not content_parts:
+             st.warning("Kein Inhalt zum Senden an die API.")
+             return "Kein Inhalt zum Senden."
+
+        response = client.models.generate_content( #######?????? client.gen... stat client.models.gen....
             model="gemini-2.0-flash",
             config=GenerateContentConfig(
-                system_instruction=SYS_INSTRUCT,
+                system_instruction=SYS_INSTRUCT if type == "speech" else "Du bist ein Assistent in einem Klassenzimmer. Antworte auf die Frage.",
                 tools=[google_search_tool] if search_enabled else [],
-                response_modalities=["TEXT"]
+                # response_modalities=["TEXT"]
             ),
-            contents=f'Konversations Verlauf:"{context}" Das hier ist das gehörte im Klassenraum: {text}'
+            contents = content_parts,
         )
         response_text = response.text.strip()
     except Exception as e:
         response_text = f"Fehler bei der API-Anfrage: {e}"
         st.error(response_text)
+        # Optional: Mehr Details loggen für Debugging
+        import traceback
+        print(traceback.format_exc())
 
     st.session_state.context.append({"user": text, "assistant": response_text})
 
     save_chat_history(st.session_state.context)
     print('Apicall for:', text)
-    print(response_text)
+    print('Response:', response_text)
     return response_text
 
 
@@ -161,13 +185,45 @@ if st.toggle("STT?"):
     
     st.text_area(f"Antwort  auf speech:", gemini_request(value), height=100)
 
+chat_box = st.container(height=300)
+with chat_box:
+    for message in st.session_state.context:
+        st.chat_message("user").write(message["user"])
+        st.chat_message("assistant").write(message["assistant"])
+if prompt := st.chat_input("Say something", accept_file=True, file_type=["jpg", "jpeg", "png", "pdf"],):
+    user_text = prompt.text
+    uploaded_files_list = prompt.files
+    with chat_box:
+        user_message_display = user_text
 
+        if uploaded_files_list:
+            file_names = ", ".join([f.name for f in uploaded_files_list])
+            user_message_display += f" (Dateien: {file_names})"
+        st.chat_message("user").write(user_message_display)
 
-text_input = st.text_input("Oder Eingabe per Tastatur", key="text_input")
+        response_text = ""
+        if uploaded_files_list: 
+            for uploaded_file in uploaded_files_list:
+                 if uploaded_file.type.startswith("image/"):
+                     st.image(uploaded_file)
+                 # Hier könntest du auch andere Dateitypen anzeigen (z.B. PDF-Vorschau, etc.)
+            response_text = gemini_request(user_text, "file", uploaded_files_list)
 
-if st.button("Senden"):
-    if text_input:
-        st.text_area(f"Antwort  auf text input:", gemini_request(text_input), height=100)
+        elif user_text: 
+            response_text = gemini_request(user_text, "custom")
+        else: 
+             response_text = "Bitte gib Text ein oder lade eine Datei hoch."
+
+        if response_text: 
+             st.chat_message("assistant").write(response_text)
+
+        # st.chat_message("user").write(prompt.text)
+        # if not prompt["files"]:
+        #     st.chat_message("assistant").write(gemini_request(prompt.text, "custom"))
+        # if prompt["files"]:
+        #     st.chat_message("assistant").write(gemini_request(prompt.text, "file", prompt["files"]))
+        #     st.image(prompt["files"])
+
 
 
 if st.button("Clear Session State"):
