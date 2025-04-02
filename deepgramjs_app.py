@@ -140,9 +140,12 @@ def gemini_request(text, type="speech", file=None):
         import traceback
         print(traceback.format_exc())
 
-    st.session_state.context.append({"user": text, "assistant": response_text})
+    if file:
+        st.session_state.context.append({"user": text, "file": [image_input], "assistant": response_text})
+    else:
+        st.session_state.context.append({"user": text, "assistant": response_text})
 
-    save_chat_history(st.session_state.context)
+    #save_chat_history(st.session_state.context) !!!!!JEPG errorrrrrr
     print('Apicall for:', text)
     print('Response:', response_text)
     return response_text
@@ -171,6 +174,8 @@ stg = st.Page("seiten/stg.py", title="STG", icon=":material/camera:")
 pg = st.navigation(["seiten/stg.py", "seiten/settings.py", "seiten/photo.py"], expanded=False)
 pg.run()
 
+if st.checkbox("Session State"):
+    st.write(st.session_state)
 
 st.title("STG")
 
@@ -189,42 +194,62 @@ chat_box = st.container(height=300)
 with chat_box:
     for message in st.session_state.context:
         st.chat_message("user").write(message["user"])
+        if "file" in message:
+            st.image(message["file"])
         st.chat_message("assistant").write(message["assistant"])
-if prompt := st.chat_input("Say something", accept_file=True, file_type=["jpg", "jpeg", "png", "pdf"],):
-    user_text = prompt.text
-    uploaded_files_list = prompt.files
+if prompt := st.chat_input("Say something", accept_file="multiple", file_type=["jpg", "jpeg", "png", "pdf"],):
     with chat_box:
-        user_message_display = user_text
+        user_text = prompt.text
+        if prompt.files:
+            file_names = ", ".join([f.name for f in prompt.files])
+            user_text += f" (Dateien: {file_names})"
+        st.chat_message("user").write(user_text)
 
-        if uploaded_files_list:
-            file_names = ", ".join([f.name for f in uploaded_files_list])
-            user_message_display += f" (Dateien: {file_names})"
-        st.chat_message("user").write(user_message_display)
-
-        response_text = ""
-        if uploaded_files_list: 
-            for uploaded_file in uploaded_files_list:
-                 if uploaded_file.type.startswith("image/"):
-                     st.image(uploaded_file)
-                 # Hier könntest du auch andere Dateitypen anzeigen (z.B. PDF-Vorschau, etc.)
-            response_text = gemini_request(user_text, "file", uploaded_files_list)
-
-        elif user_text: 
-            response_text = gemini_request(user_text, "custom")
-        else: 
-             response_text = "Bitte gib Text ein oder lade eine Datei hoch."
-
-        if response_text: 
-             st.chat_message("assistant").write(response_text)
-
-        # st.chat_message("user").write(prompt.text)
-        # if not prompt["files"]:
-        #     st.chat_message("assistant").write(gemini_request(prompt.text, "custom"))
-        # if prompt["files"]:
-        #     st.chat_message("assistant").write(gemini_request(prompt.text, "file", prompt["files"]))
-        #     st.image(prompt["files"])
+        if not prompt.files:
+            st.chat_message("assistant").write(gemini_request(prompt.text, "custom"))
+        else:
+            st.chat_message("assistant").write(gemini_request(prompt.text, "file", prompt.files))
+            for file in prompt.files:
+                if file.type.startswith("image/"):
+                    st.image(file)
 
 
+if st.checkbox("Photo prompt"):
+    if 'single' not in st.session_state:
+        st.session_state.single = 1
+    if 'min' not in st.session_state:
+        st.session_state.min = 1
+    if 'max' not in st.session_state:
+        st.session_state.max = 2
+    if 'aufgaben' not in st.session_state:
+        st.session_state.aufgaben = "Alle auf dem Foto"
+    prompt = "Beantworte Aufgabe: "
+
+    num_dict = {
+        "Alle auf dem Foto": "0",
+        str(st.session_state.single): "1",
+        str(st.session_state.min) + " bis " + str(st.session_state.max): "2",
+    }
+    print("num_dict: ", num_dict)
+    print("aufgaben: ", str(st.session_state.aufgaben))
+    print("single: ", str(st.session_state.single))
+    print("hierrrrrr: ", num_dict[str(st.session_state.aufgaben)])
+    prompt += st.radio(
+        "Beantworte Aufgabe", 
+        ["Alle auf dem Foto",
+        str(st.number_input("Specific Nummer", 1, step=1, key="single")),
+        str(st.number_input("Min Nummer", 1, step=1, key="min")) + " bis " + str(st.number_input("Max Nummer", st.session_state.min + 1, step=1, key="max"))
+        ],
+        int(num_dict[st.session_state.aufgaben]),
+        key="aufgaben"
+    )
+
+    prompt += " " + st.radio("Wörter", ["", "in " + str(st.number_input("Anzahl Wörtern", 0, value=100, step=25, key="words")) + " Wörtern "]) 
+
+    prompt += st.radio("Textsorte", ["", "in " + "Stichpunkten ", "als " + "Fließtext ", "in " + st.text_input("Custom Type")]) 
+
+    prompt += " in leichter Sprache " if st.checkbox("in leichter Sprache") else ""
+    prompt += " in " + st.selectbox("Sprache", ("Deutsch", "Englisch", "Französisch"))
 
 if st.button("Clear Session State"):
     for key in st.session_state.keys():
@@ -245,6 +270,8 @@ st.link_button("Close", "https://login.schulportal.hessen.de/?url=aHR0cHM6Ly9jb2
 if st.checkbox("Verlauf anzeigen"):
     st.text_area("Konversationsverlauf:", value=str(st.session_state.context), height=200)
 
-#if st.button("Session State"):
-st.write(st.session_state)
+
+
+if st.button("Neurendern"):
+    st.rerun()
 
