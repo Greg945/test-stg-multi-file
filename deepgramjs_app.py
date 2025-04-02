@@ -26,6 +26,9 @@ if 'search' not in st.session_state:
 if "context" not in st.session_state:
     st.session_state.context = []
 
+if "prompt" not in st.session_state:
+    st.session_state.prompt = ""
+
 
 DEFAULT_LANGUAGE = "de-DE"
 
@@ -174,8 +177,6 @@ stg = st.Page("seiten/stg.py", title="STG", icon=":material/camera:")
 pg = st.navigation(["seiten/stg.py", "seiten/settings.py", "seiten/photo.py"], expanded=False)
 pg.run()
 
-if st.checkbox("Session State"):
-    st.write(st.session_state)
 
 st.title("STG")
 
@@ -199,16 +200,21 @@ with chat_box:
         st.chat_message("assistant").write(message["assistant"])
 if prompt := st.chat_input("Say something", accept_file="multiple", file_type=["jpg", "jpeg", "png", "pdf"],):
     with chat_box:
-        user_text = prompt.text
+        if st.session_state.prompt != "":
+            user_text = st.session_state.prompt
+            gemini_prompt = st.session_state.prompt
+        else:
+            user_text = prompt.text
+            gemini_prompt = prompt.text
         if prompt.files:
             file_names = ", ".join([f.name for f in prompt.files])
             user_text += f" (Dateien: {file_names})"
         st.chat_message("user").write(user_text)
 
         if not prompt.files:
-            st.chat_message("assistant").write(gemini_request(prompt.text, "custom"))
+            st.chat_message("assistant").write(gemini_request(gemini_prompt, "custom"))
         else:
-            st.chat_message("assistant").write(gemini_request(prompt.text, "file", prompt.files))
+            st.chat_message("assistant").write(gemini_request(gemini_prompt, "file", prompt.files))
             for file in prompt.files:
                 if file.type.startswith("image/"):
                     st.image(file)
@@ -223,33 +229,48 @@ if st.checkbox("Photo prompt"):
         st.session_state.max = 2
     if 'aufgaben' not in st.session_state:
         st.session_state.aufgaben = "Alle auf dem Foto"
-    prompt = "Beantworte Aufgabe: "
+    if 'words_radio' not in st.session_state:
+        st.session_state.words_radio = ""
+
+    prompt = "Beantworte auf diesem Bild Aufgabe: "
 
     num_dict = {
-        "Alle auf dem Foto": "0",
-        str(st.session_state.single): "1",
-        str(st.session_state.min) + " bis " + str(st.session_state.max): "2",
+        17: 0,
+        1: 1,
+        7: 2,
+        8: 2,
+        9: 2,
     }
-    print("num_dict: ", num_dict)
-    print("aufgaben: ", str(st.session_state.aufgaben))
-    print("single: ", str(st.session_state.single))
-    print("hierrrrrr: ", num_dict[str(st.session_state.aufgaben)])
+
     prompt += st.radio(
         "Beantworte Aufgabe", 
         ["Alle auf dem Foto",
         str(st.number_input("Specific Nummer", 1, step=1, key="single")),
         str(st.number_input("Min Nummer", 1, step=1, key="min")) + " bis " + str(st.number_input("Max Nummer", st.session_state.min + 1, step=1, key="max"))
         ],
-        int(num_dict[st.session_state.aufgaben]),
+        num_dict[len(st.session_state.aufgaben)],
         key="aufgaben"
     )
 
-    prompt += " " + st.radio("Wörter", ["", "in " + str(st.number_input("Anzahl Wörtern", 0, value=100, step=25, key="words")) + " Wörtern "]) 
+    word_dict = {
+        0: 0,
+        14: 1,
+        15: 1,
+        16: 1,
+    }
+    prompt += " " + st.radio("Wörter", ["", "in " + str(st.number_input("Anzahl Wörtern", 0, value=100, step=25, key="words")) + " Wörtern "], word_dict[len(st.session_state.words_radio)], key="words_radio") 
 
-    prompt += st.radio("Textsorte", ["", "in " + "Stichpunkten ", "als " + "Fließtext ", "in " + st.text_input("Custom Type")]) 
+    prompt += st.radio("Textsorte", ["", "in Stichpunkten ", "als Fließtext ", "in " + st.text_input("Custom Type")]) 
 
     prompt += " in leichter Sprache " if st.checkbox("in leichter Sprache") else ""
     prompt += " in " + st.selectbox("Sprache", ("Deutsch", "Englisch", "Französisch"))
+
+    st.write("Prompt:", prompt)
+
+    st.session_state.prompt = prompt
+else:
+    st.session_state.prompt = ""
+
 
 if st.button("Clear Session State"):
     for key in st.session_state.keys():
@@ -271,6 +292,8 @@ if st.checkbox("Verlauf anzeigen"):
     st.text_area("Konversationsverlauf:", value=str(st.session_state.context), height=200)
 
 
+if st.checkbox("Session State"):
+    st.write(st.session_state)
 
 if st.button("Neurendern"):
     st.rerun()
