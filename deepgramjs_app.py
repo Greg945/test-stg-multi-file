@@ -55,16 +55,26 @@ def aktuelles_fach():
     for eintrag in st.session_state.stundenplan:
         if eintrag["Tag"] == aktueller_tag and eintrag["Start"] <= aktuelle_zeit < eintrag["Ende"]:
             return eintrag["Fach"]
-    return ""
+    return "" # Falls kein Fach gefunden wird, gib einen leeren String zurück stimt das????????????
 
 if "stundenplan" not in st.session_state:
     st.session_state.stundenplan = lade_stundenplan()
 
-def save_chat_history(context):
+def save_chat_history():
     print("week: ", datetime.date.today().isocalendar().week , " year: ", datetime.date.today().year)
     week_dir = "history/" + str(datetime.date.today().isocalendar().week)
     CHAT_FILE = week_dir + "/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
     
+    context = [
+    {
+        "user": message.get("user"), 
+        "assistant": message.get("assistant")
+    } 
+    for message in st.session_state.context
+    ]
+    print(context)
+
+
     try:
         # Erstelle den history-Ordner, falls er nicht existiert
         if not os.path.exists("history"):
@@ -81,14 +91,15 @@ def save_chat_history(context):
     except Exception as e:
         st.error(f"Fehler beim Speichern des Chat-Verlaufs: {e}")
 
-# def load_chat_history():
-#     try:
-#         if os.path.exists(CHAT_FILE):
-#             with open(CHAT_FILE, 'r', encoding='utf-8') as f:
-#                 return json.load(f)
-#     except Exception as e:
-#         st.error(f"Fehler beim Laden des Chat-Verlaufs: {e}")
-#     return [{"role": "user", "content": "hallo"}]  # Standardwert falls keine Historie existiert
+def load_chat_history():
+    HISTORY_FILE = "history/" + str(datetime.date.today().isocalendar().week) +  "/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
+    try:
+        if os.path.exists():
+            with open(CHAT_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        st.error(f"Fehler beim Laden des Chat-Verlaufs: {e}")
+    return [{"role": "user", "content": "hallo"}]  # Standardwert falls keine Historie existiert
 
 # def load_chat_history():
 #     try:
@@ -148,7 +159,7 @@ def gemini_request(text, type="speech", file=None):
     else:
         st.session_state.context.append({"user": text, "assistant": response_text})
 
-    #save_chat_history(st.session_state.context) !!!!!JEPG errorrrrrr
+    save_chat_history()
     print('Apicall for:', text)
     print('Response:', response_text)
     return response_text
@@ -202,19 +213,17 @@ if prompt := st.chat_input("Say something", accept_file="multiple", file_type=["
     with chat_box:
         if st.session_state.prompt != "":
             user_text = st.session_state.prompt
-            gemini_prompt = st.session_state.prompt
         else:
             user_text = prompt.text
-            gemini_prompt = prompt.text
         if prompt.files:
             file_names = ", ".join([f.name for f in prompt.files])
             user_text += f" (Dateien: {file_names})"
         st.chat_message("user").write(user_text)
 
         if not prompt.files:
-            st.chat_message("assistant").write(gemini_request(gemini_prompt, "custom"))
+            st.chat_message("assistant").write(gemini_request(user_text, "custom"))
         else:
-            st.chat_message("assistant").write(gemini_request(gemini_prompt, "file", prompt.files))
+            st.chat_message("assistant").write(gemini_request(user_text, "file", prompt.files))
             for file in prompt.files:
                 if file.type.startswith("image/"):
                     st.image(file)
