@@ -12,7 +12,8 @@ import datetime
 import time
 import PIL 
 import io
-
+from pathlib import Path
+import sys
 
 client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
 
@@ -92,14 +93,72 @@ def save_chat_history():
         st.error(f"Fehler beim Speichern des Chat-Verlaufs: {e}")
 
 def load_chat_history():
-    HISTORY_FILE = "history/" + str(datetime.date.today().isocalendar().week) +  "/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
+    # HISTORY_FILE = "history/" + str(datetime.date.today().isocalendar().week) +  "/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
+    # try:
+    #     if os.path.exists():
+    #         with open(CHAT_FILE, 'r', encoding='utf-8') as f:
+    #             return json.load(f)
+    # except Exception as e:
+    #     st.error(f"Fehler beim Laden des Chat-Verlaufs: {e}")
+    # #return [{"role": "user", "content": "hallo"}]  # Standardwert falls keine Historie existiert
+
+
+    # letzte_stunde = []
+    # with open("stundenplan.csv", newline='', encoding='utf-8') as f:
+    #     reader = csv.DictReader(f)
+    #     for row in reader:
+    #         if row["Fach"] == "Mathe":
+
+    #         # start = datetime.datetime.strptime(row["Start"], "%H:%M").time()
+    #         # ende = datetime.datetime.strptime(row["Ende"], "%H:%M").time()
+    #             letzte_stunde.append({row["Fach"], row["Tag"]})
+    # print(letzte_stunde)
+    # jetzt = datetime.datetime.now()
+    # aktueller_tag = jetzt.strftime("%A")
+    # if len(letzte_stunde) > 1:
+    #     for s in letzte_stunde:
+    #         print(s)
+    #         if aktueller_tag in s:
+    #             letzte_stunde.remove(s)
+    # print(letzte_stunde)
+
+
+    start_folder_path = Path("history")
+
+    search_term = "mathe"
+
+    print(f"Durchsuche Ordner '{start_folder_path}' und Unterordner nach Dateien mit '{search_term}' im Namen...")
+    matching_files = []
     try:
-        if os.path.exists():
-            with open(CHAT_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        for dirpath, dirnames, filenames in os.walk(start_folder_path):
+            current_dir_path = Path(dirpath)
+            for filename in filenames:
+                if search_term.lower() in filename.lower():
+                    full_path = current_dir_path / filename
+                    matching_files.append(full_path)
+
+        if not matching_files:
+            print(f"\nKeine Dateien mit '{search_term}' im Namen im Ordner '{start_folder_path}' oder seinen Unterordnern gefunden.")
+        else:
+            newest_file = max(matching_files, key=lambda f: f.stat().st_mtime)
+            print(f"\nDie neuste Datei mit '{search_term}' im Namen (inkl. Unterordner) ist:")
+            print(newest_file) 
+    except OSError as e:
+        print(f"\nFehler beim Zugriff auf den Ordner oder die Dateien: {e}")
+        st.error(f"\nFehler beim Zugriff auf den Ordner oder die Dateien: {e}")
+    except Exception as e:
+        print(f"\nEin unerwarteter Fehler ist aufgetreten: {e}")
+        st.error(f"\nEin unerwarteter Fehler ist aufgetreten: {e}")
+
+    try:
+        with open(newest_file.resolve(), 'r', encoding='utf-8') as f:
+            letzte_stunde_history = json.load(f)
     except Exception as e:
         st.error(f"Fehler beim Laden des Chat-Verlaufs: {e}")
-    return [{"role": "user", "content": "hallo"}]  # Standardwert falls keine Historie existiert
+    print(letzte_stunde_history)
+    
+    gemini_request(letzte_stunde_history, "summary")
+    
 
 # def load_chat_history():
 #     try:
@@ -122,6 +181,8 @@ def gemini_request(text, type="speech", file=None):
             content_parts = f'Konversations Verlauf:"{context}" Das hier ist das gehörte im Klassenraum: {text}'
         elif type == "custom":
             content_parts = f'Konversations Verlauf:"{context}" User eingabe: "{text}"'
+        elif type == "summary":
+            content_parts = f'Fasse die Themen aus letzter Stunde in Stichpunkten zusammen: "{text}"'
         elif type == "file":
             for image in file:
                 buffer = io.BytesIO()
@@ -155,9 +216,11 @@ def gemini_request(text, type="speech", file=None):
         print(traceback.format_exc())
 
     if file:
-        st.session_state.context.append({"user": text, "file": [image_input], "assistant": response_text})
-    else:
+        st.session_state.context.append({"user": text , "file": [image_input], "assistant": response_text})
+    elif not file and type != "summary":
         st.session_state.context.append({"user": text, "assistant": response_text})
+    else:
+        st.session_state.context.append({"user": "Chat_history der Letzten Stunde", "assistant": response_text})
 
     save_chat_history()
     print('Apicall for:', text)
@@ -191,6 +254,8 @@ pg.run()
 
 st.title("STG")
 
+if st.button("letzte stunde"):
+    load_chat_history()
 
 st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", index=None, on_change=lang_switch, placeholder="Default: Automatic")
 
