@@ -43,6 +43,8 @@
         let queue = []
         let one_speech = []
         let languagevalue = "de-DE"
+        let deepgram_model = "nova-2"
+        let diarize = ""
 
         console.log("start")
 
@@ -62,7 +64,7 @@
             
 
             const mediaRecorder = new MediaRecorder(stream)
-            ws = new WebSocket(`wss://api.deepgram.com/v1/listen?language=${languagevalue}&model=nova-2&endpointing=1000`, [ 'token', API_KEY ]);
+            ws = new WebSocket(`wss://api.deepgram.com/v1/listen?language=${languagevalue}&model=${deepgram_model}&endpointing=1000&no_delay=true${diarize}`, [ 'token', API_KEY ]);
             
             
 
@@ -134,6 +136,8 @@
         function onDataFromPython(event) {
         if (event.data.type !== "streamlit:render") return;
         languagevalue = event.data.args.language;
+        deepgram_model = event.data.args.model;
+        diarize = event.data.args.diarize;
         }
 
         myInput.addEventListener("change", function() {

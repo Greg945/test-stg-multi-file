@@ -17,7 +17,7 @@ import sys
 
 print("rerun :", datetime.datetime.now().strftime("%H:%M:%S"))
 
-client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 google_search_tool = Tool(google_search=GoogleSearch())
 
@@ -276,7 +276,7 @@ st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", i
 
 if st.toggle("STT?"):
     lang_switch()
-    value = deepgramcomp(language=st.session_state.language_code)
+    value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.diarize)
     st.write("Received", value)
     
     st.text_area(f"Antwort  auf speech:", gemini_request(value), height=100)
