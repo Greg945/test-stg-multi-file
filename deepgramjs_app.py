@@ -15,6 +15,8 @@ import io
 from pathlib import Path
 import sys
 
+print("rerun :", datetime.datetime.now().strftime("%H:%M:%S"))
+
 client = genai.Client(api_key="AIzaSyA3iQXk6-M5XQhzLIMO3SfEAKDPRunTHP8")
 
 google_search_tool = Tool(google_search=GoogleSearch())
@@ -23,6 +25,8 @@ google_search_tool = Tool(google_search=GoogleSearch())
 if 'search' not in st.session_state:
     st.session_state.search = False
 
+#if 'test' not in st.session_state:
+#    st.session_state.test = "1"
 
 if "context" not in st.session_state:
     st.session_state.context = []
@@ -39,24 +43,34 @@ SYS_INSTRUCT = ('Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn
                 'den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage brauchst.')
 
 
-def lade_stundenplan(datei="stundenplan.csv"):
+def lade_stundenplan(datei="stundenplan2.csv"):
     stundenplan = []
     with open(datei, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             start = datetime.datetime.strptime(row["Start"], "%H:%M").time()
             ende = datetime.datetime.strptime(row["Ende"], "%H:%M").time()
-            stundenplan.append({"Start": start, "Ende": ende, "Fach": row["Fach"], "Tag": row["Tag"]})
+            # Erstelle einen Eintrag für jeden Wochentag
+            for tag in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
+                if row[tag]:  # Nur wenn ein Fach für diesen Tag existiert
+                    stundenplan.append({
+                        "Start": start,
+                        "Ende": ende,
+                        "Fach": row[tag],
+                        "Tag": tag
+                    })
     return stundenplan
 
 def aktuelles_fach():
     jetzt = datetime.datetime.now()
-    aktueller_tag = jetzt.strftime("%A")
+    # Konvertiere den aktuellen Tag in das deutsche Format
+    aktueller_tag = jetzt.strftime("%A"), ""
     aktuelle_zeit = jetzt.time()
+    
     for eintrag in st.session_state.stundenplan:
         if eintrag["Tag"] == aktueller_tag and eintrag["Start"] <= aktuelle_zeit < eintrag["Ende"]:
             return eintrag["Fach"]
-    return "" # Falls kein Fach gefunden wird, gib einen leeren String zurück stimt das????????????
+    return ""  # Falls kein Fach gefunden wird
 
 if "stundenplan" not in st.session_state:
     st.session_state.stundenplan = lade_stundenplan()
