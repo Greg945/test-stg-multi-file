@@ -349,9 +349,10 @@ if prompt := st.chat_input("Say something", accept_file="multiple", file_type=["
                 if file.type.startswith("image/"):
                     st.image(file)
 
-photo_expander = st.popover("Photo Prompt")
-
-with photo_expander:
+#photo_expander = st.popover("Photo Prompt")
+#
+#with photo_expander:
+if st.checkbox("Photo prompt"):
     if 'single' not in st.session_state:
         st.session_state.single = 1
     if 'min' not in st.session_state:
@@ -399,9 +400,11 @@ with photo_expander:
     st.write("Prompt:", prompt)
 
     st.session_state.prompt = prompt
-    print("lol")
+    #print("lol")
+else:
+    st.session_state.prompt = ""
 
-print(photo_expander)
+#print(photo_expander)
 #else:
 #    st.session_state.prompt = ""
 
