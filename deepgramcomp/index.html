@@ -137,7 +137,12 @@
         if (event.data.type !== "streamlit:render") return;
         languagevalue = event.data.args.language;
         deepgram_model = event.data.args.model;
-        diarize = event.data.args.diarize;
+        if (event.data.args.diarize = true) {
+          diarize = "&diarize=true"
+        }
+        else {
+          diarize = ""
+        }
         }
 
         myInput.addEventListener("change", function() {

@@ -3,7 +3,7 @@
     {
       "Start": "7:45",
       "Ende": "9:15",
-      "Monday": "Französisch",
+      "Monday": "FFFFFFranzösisch",
       "Tuesday": "Französisch",
       "Wednesday": "Kemie",
       "Thursday": "Deutsch",
@@ -28,6 +28,6 @@
       "Friday": "Mathe"
     }
   ],
-  "deepgram_model": "nova-3",
-  "system_prompt": "Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit \"Ignoriert\". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage braucht."
+  "deepgram_model": "nova-333333",
+  "system_prompt": "DDDDDDu bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit \"Ignoriert\". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage braucht."
 }

@@ -59,7 +59,8 @@ def save_json():
     full_data = {
         "stundenplan": json.loads(json_data),
         "deepgram_model": st.session_state.config_model,
-        "system_prompt": st.session_state.config_sys_prompt
+        "system_prompt": st.session_state.config_sys_prompt,
+        "diarize": st.session_state.config_diarize_toggle
     }
     
     # Stelle sicher, dass der configs Ordner existiert
@@ -78,21 +79,19 @@ try:
         data = json.load(f)
         default_model = data.get("deepgram_model", "nova-2")
         default_prompt = data.get("system_prompt", 'Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit "Ignoriert". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage brauchst.')
+        default_diarize = data.get("diarize", False)
 except FileNotFoundError:
     default_model = "nova-2"
     default_prompt = 'Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit "Ignoriert". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage braucht.'
+    default_diarize = False
 
 st.text_input("Deepgram Model", value=default_model, key="config_model")
 
 st.text_input("System Prompt", value=default_prompt, key="config_sys_prompt")
 
-st.text_input("Diarize", value=default_prompt, key="config_sys_prompt") #######
+st.toggle("Diarize", value=default_diarize, key="config_diarize_toggle")
 
 # Speichern als JSON
 if st.button("Speichern"):
     st.text_input("Config Name", key="config_name_input", on_change=save_json)
-    
-
-if st.button("print"):
-    print(df)
 
