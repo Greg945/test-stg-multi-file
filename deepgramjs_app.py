@@ -14,7 +14,6 @@ import PIL
 import io
 from pathlib import Path
 import sys
-from browser_detection import browser_detection_engine
 
 #valueeee = browser_detection_engine()
 #st.write(valueeee)

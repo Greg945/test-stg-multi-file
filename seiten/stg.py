@@ -14,7 +14,6 @@ import PIL
 import io
 from pathlib import Path
 import sys
-from browser_detection import browser_detection_engine
 
 
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
