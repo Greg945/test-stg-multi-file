@@ -139,12 +139,14 @@
         if (event.data.type !== "streamlit:render") return;
         languagevalue = event.data.args.language;
         deepgram_model = event.data.args.model;
-        if (event.data.args.diarize = true) {
+        console.log(event.data.args.diarize)
+        if (event.data.args.diarize != false) {
           diarize = "&diarize=true"
         }
         else {
           diarize = ""
         }
+        console.log(diarize)
         if (event.data.args.endpointing != "False") {
           endpointing = "&endpointing=" + String(event.data.args.endpointing)
         }

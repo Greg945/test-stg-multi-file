@@ -326,6 +326,7 @@ st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", i
 
 if st.toggle("STT?"):
     lang_switch()
+    print(st.session_state.language_code, st.session_state.config_model, st.session_state.config_diarize_toggle, st.session_state.config_endpointing)
     value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.config_diarize_toggle, endpointing=st.session_state.config_endpointing)
     st.write("Received", value)
     
