@@ -281,8 +281,8 @@ def gemini_request(text, type="speech", file=None):
 
 
 def lang_switch():
-    DEFAULT_LANGUAGE = "de-DE"
-    language_codes = {"Deutsch": "de-DE", "Englisch": "en-GB", "Französisch": "fr-FR"}
+    DEFAULT_LANGUAGE = "de"
+    language_codes = {"Deutsch": "de", "Englisch": "en", "Französisch": "fr"}
     if st.session_state.sprache != None:
         st.session_state.language_code = language_codes.get(st.session_state.sprache, DEFAULT_LANGUAGE)
     else:

@@ -42,7 +42,7 @@
         let is_waiting = false
         let queue = []
         let one_speech = []
-        let languagevalue = "de-DE"
+        let languagevalue = "de"
         let deepgram_model = "nova-2"
         let diarize = ""
         let endpointing = ""
@@ -65,8 +65,8 @@
             
 
             const mediaRecorder = new MediaRecorder(stream)
-            console.log(`wss://api.deepgram.com/v1/listen?language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`)
-            ws = new WebSocket(`wss://api.deepgram.com/v1/listen?language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`, [ 'token', API_KEY ]);
+            console.log(`wss://api.deepgram.com/v1/listen?smart_format=true&language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`)
+            ws = new WebSocket(`wss://api.deepgram.com/v1/listen?smart_format=true&language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`, [ 'token', API_KEY ]);
             
             
 
@@ -139,20 +139,23 @@
         if (event.data.type !== "streamlit:render") return;
         languagevalue = event.data.args.language;
         deepgram_model = event.data.args.model;
-        console.log(event.data.args.diarize)
+        
         if (event.data.args.diarize != false) {
           diarize = "&diarize=true"
         }
         else {
           diarize = ""
         }
-        console.log(diarize)
-        if (event.data.args.endpointing != false) {
+        console.log(event.data.args.endpointing)
+        console.log(typeof event.data.args.endpointing)
+        
+        if (event.data.args.endpointing != "False") {
           endpointing = "&endpointing=" + String(event.data.args.endpointing)
         }
         else {
           endpointing = ""
         }
+        console.log(endpointing)
         
         }
 
