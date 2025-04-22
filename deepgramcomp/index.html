@@ -45,6 +45,7 @@
         let languagevalue = "de-DE"
         let deepgram_model = "nova-2"
         let diarize = ""
+        let endpointing = ""
 
         console.log("start")
 
@@ -64,7 +65,8 @@
             
 
             const mediaRecorder = new MediaRecorder(stream)
-            ws = new WebSocket(`wss://api.deepgram.com/v1/listen?language=${languagevalue}&model=${deepgram_model}&endpointing=1000&no_delay=true${diarize}`, [ 'token', API_KEY ]);
+            console.log(`wss://api.deepgram.com/v1/listen?language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`)
+            ws = new WebSocket(`wss://api.deepgram.com/v1/listen?language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`, [ 'token', API_KEY ]);
             
             
 
@@ -143,6 +145,13 @@
         else {
           diarize = ""
         }
+        if (event.data.args.endpointing != false) {
+          endpointing = "&endpointing=" + String(event.data.args.language)
+        }
+        else {
+          endpointing = ""
+        }
+        
         }
 
         myInput.addEventListener("change", function() {

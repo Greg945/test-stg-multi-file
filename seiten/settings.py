@@ -52,6 +52,7 @@ edited_df = st.data_editor(
 
 
 def save_json():
+    print("Aufgreufen")
     # Konvertiere DataFrame zu JSON
     json_data = edited_df.to_json(orient='records', force_ascii=False)
     
@@ -60,15 +61,23 @@ def save_json():
         "stundenplan": json.loads(json_data),
         "deepgram_model": st.session_state.config_model,
         "system_prompt": st.session_state.config_sys_prompt,
-        "diarize": st.session_state.config_diarize_toggle
+        "diarize": st.session_state.config_diarize_toggle,
+        "endpointing": st.session_state.config_endpointing
     }
+    print(full_data)
     
     # Stelle sicher, dass der configs Ordner existiert
     os.makedirs("configs", exist_ok=True)
     
-    # Speichere JSON in Datei
+    # Speichere JSON in Datei (überschreibt existierende Datei)
     with open("configs/" + st.session_state.config_name_input + ".json", "w", encoding="utf-8") as f:
         json.dump(full_data, f, indent=2, ensure_ascii=False)
+    
+    # Aktualisiere die Liste der verfügbaren Konfigurationen
+    if st.session_state.config_name_input not in config_files:
+        config_files.append(st.session_state.config_name_input)
+    
+    st.success(f"Konfiguration '{st.session_state.config_name_input}' wurde gespeichert!")
     
     print(json.dumps(full_data, indent=2, ensure_ascii=False))
 
@@ -80,10 +89,12 @@ try:
         default_model = data.get("deepgram_model", "nova-2")
         default_prompt = data.get("system_prompt", 'Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit "Ignoriert". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage brauchst.')
         default_diarize = data.get("diarize", False)
+        default_endpointing = data.get("endpointing", False)
 except FileNotFoundError:
     default_model = "nova-2"
     default_prompt = 'Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit "Ignoriert". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage braucht.'
     default_diarize = False
+    default_endpointing = False
 
 st.text_input("Deepgram Model", value=default_model, key="config_model")
 
@@ -91,7 +102,12 @@ st.text_input("System Prompt", value=default_prompt, key="config_sys_prompt")
 
 st.toggle("Diarize", value=default_diarize, key="config_diarize_toggle")
 
+st.text_input("Endpointing (False for off)", value=default_endpointing, key="config_endpointing")
+
 # Speichern als JSON
+st.text_input("Config Name", key="config_name_input")
+
 if st.button("Speichern"):
-    st.text_input("Config Name", key="config_name_input", on_change=save_json)
+    save_json()
+
 

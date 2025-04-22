@@ -318,7 +318,7 @@ st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", i
 
 if st.toggle("STT?"):
     lang_switch()
-    value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.config_diarize_toggle)
+    value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.config_diarize_toggle, endpointing=st.session_state.config_endpoinnting)
     st.write("Received", value)
     
     st.text_area(f"Antwort  auf speech:", gemini_request(value), height=100)
