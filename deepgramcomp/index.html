@@ -145,8 +145,8 @@
         else {
           diarize = ""
         }
-        if (event.data.args.endpointing != false) {
-          endpointing = "&endpointing=" + String(event.data.args.language)
+        if (event.data.args.endpointing != "False") {
+          endpointing = "&endpointing=" + String(event.data.args.endpointing)
         }
         else {
           endpointing = ""

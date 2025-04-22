@@ -4,19 +4,23 @@
     "assistant": "Ignoriert"
   },
   {
+    "user": "ja",
+    "assistant": "Ignoriert"
+  },
+  {
+    "user": "es funktioniert",
+    "assistant": "Ignoriert"
+  },
+  {
     "user": "hallo",
     "assistant": "Ignoriert"
   },
   {
-    "user": "funktioniert das",
+    "user": "das sollte jetzt nicht da",
     "assistant": "Ignoriert"
   },
   {
-    "user": "muss ich jetzt für die gleiche scheiße da machen",
-    "assistant": "Ignoriert"
-  },
-  {
-    "user": "jetzt aber",
+    "user": "also settings",
     "assistant": "Ignoriert"
   }
 ]

@@ -63,6 +63,11 @@ def load_config(config_name=st.session_state.config_selector):
             st.session_state.config_diarize_toggle = config_data["diarize"]
         else:
             st.session_state.config_diarize_toggle = False
+
+        if "endpointing" in config_data:
+            st.session_state.config_endpointing = config_data["endpointing"]
+        else:
+            st.session_state.config_endpointing = False
             
         if "stundenplan" in config_data:
             st.session_state.stundenplan = config_data["stundenplan"]
@@ -318,7 +323,7 @@ st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", i
 
 if st.toggle("STT?"):
     lang_switch()
-    value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.config_diarize_toggle, endpointing=st.session_state.config_endpoinnting)
+    value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.config_diarize_toggle, endpointing=st.session_state.config_endpointing)
     st.write("Received", value)
     
     st.text_area(f"Antwort  auf speech:", gemini_request(value), height=100)
