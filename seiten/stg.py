@@ -44,7 +44,10 @@ if 'config_selector' not in st.session_state:
 if 'expander_state' not in st.session_state:
     st.session_state.expander_state = False
 
-def load_config(config_name=st.session_state.config_selector):
+def load_config(config_name=None):
+    if config_name is None:
+        config_name = st.session_state.config_selector
+    print("Config laden:", config_name)
     with open("configs/" + config_name + ".json", "r", encoding="utf-8") as f:
         config_data = json.load(f)
         
