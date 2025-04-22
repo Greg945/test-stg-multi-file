@@ -147,7 +147,7 @@
           diarize = ""
         }
         console.log(diarize)
-        if (event.data.args.endpointing != "False") {
+        if (event.data.args.endpointing != false) {
           endpointing = "&endpointing=" + String(event.data.args.endpointing)
         }
         else {
