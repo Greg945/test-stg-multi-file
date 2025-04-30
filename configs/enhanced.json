@@ -31,5 +31,6 @@
   "deepgram_model": "enhanced",
   "system_prompt": "Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit \"Ignoriert\". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage braucht.",
   "diarize": false,
-  "endpointing": "False"
+  "endpointing": "False",
+  "volume": 200
 }

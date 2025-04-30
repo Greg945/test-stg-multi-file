@@ -1,7 +1,4 @@
 <body>
-    <h1>Live Transkription mit Deepgram</h1>
-    <button id="start">Start</button>
-    <button id="stop">Stop</button>
     <input id="myinput" value="" hidden />
     <p id="output"></p>
 
@@ -46,14 +43,19 @@
         let deepgram_model = "nova-2"
         let diarize = ""
         let endpointing = ""
+        let volumeValue = 100
+        let audioContext = null
+        let gainNode = null
+        let audioStream = null
 
         console.log("start")
 
-        const API_KEY = "861ef76d80da6f7535d9f3361dd139e2dd26a24d"; // Hier deinen API-Key einfügen
+        const API_KEY = "861ef76d80da6f7535d9f3361dd139e2dd26a24d";
         const DEEPGRAM_URL = `wss://api.deepgram.com/v1/listen`;
         let ws, mediaRecorder;
 
-        document.getElementById("start").addEventListener("click", async () => {
+        // Starte die Aufnahme automatisch beim Laden der Seite
+        window.addEventListener('load', async () => {
             if (!navigator.mediaDevices.getUserMedia) {
                 alert("Dein Browser unterstützt kein getUserMedia.");
                 return;
@@ -61,68 +63,78 @@
 
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
               console.log({ stream })
-              // Further code goes here
-            
+              
+              // Audio-Kontext und Gain-Node erstellen
+              audioContext = new (window.AudioContext || window.webkitAudioContext)();
+              gainNode = audioContext.createGain();
+              gainNode.gain.value = volumeValue / 100;
+              
+              // Audio-Stream durch Gain-Node leiten
+              const source = audioContext.createMediaStreamSource(stream);
+              source.connect(gainNode);
+              
+              // Neuen MediaStream mit angepasster Lautstärke erstellen
+              const destination = audioContext.createMediaStreamDestination();
+              gainNode.connect(destination);
+              audioStream = destination.stream;
+              
+              // MediaRecorder mit dem neuen Stream erstellen
+              const mediaRecorder = new MediaRecorder(audioStream);
+              console.log(`wss://api.deepgram.com/v1/listen?smart_format=true&language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`)
+              console.log(volumeValue)
+              ws = new WebSocket(`wss://api.deepgram.com/v1/listen?smart_format=true&language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`, [ 'token', API_KEY ]);
+              
+              ws.onopen = () => {
+                console.log("WebSocket verbunden");
+                const keepAliveMsg = JSON.stringify({ type: "KeepAlive" });
+                ws.send(keepAliveMsg);
+                mediaRecorder.addEventListener('dataavailable', event => {
+                if (event.data.size > 0 && ws.readyState == 1) {
+                  //console.log({ event: 'dataavailable', data: event.data })
+                  ws.send(event.data)
+                }
+              })
+              mediaRecorder.start(250) // Sendet Audio alle 250ms
+              };
+              
+              ws.onmessage = (event) => {
+                const response = JSON.parse(event.data);
+                if (response.channel && response.channel.alternatives[0].transcript) {
+                  document.getElementById("output").innerText = response.channel.alternatives[0].transcript;
+                  console.log(response)
+                  console.log(response.channel.alternatives[0].transcript)
+                  console.log("is_final: " , response.is_final)
+                  console.log("speech_final: " , response.speech_final)
 
-            const mediaRecorder = new MediaRecorder(stream)
-            console.log(`wss://api.deepgram.com/v1/listen?smart_format=true&language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`)
-            ws = new WebSocket(`wss://api.deepgram.com/v1/listen?smart_format=true&language=${languagevalue}&model=${deepgram_model}${endpointing}&no_delay=true${diarize}`, [ 'token', API_KEY ]);
-            
-            
-
-            ws.onopen = () => {
-              console.log("WebSocket verbunden");
-              const keepAliveMsg = JSON.stringify({ type: "KeepAlive" });
-              ws.send(keepAliveMsg);
-              mediaRecorder.addEventListener('dataavailable', event => {
-              if (event.data.size > 0 && ws.readyState == 1) {
-                //console.log({ event: 'dataavailable', data: event.data })
-                ws.send(event.data)
-              }
-            })
-            mediaRecorder.start(250) // Sendet Audio alle 250ms
-            };
-            
-            ws.onmessage = (event) => {
-              const response = JSON.parse(event.data);
-              if (response.channel && response.channel.alternatives[0].transcript) {
-                document.getElementById("output").innerText = response.channel.alternatives[0].transcript;
-                console.log(response)
-                console.log(response.channel.alternatives[0].transcript)
-                console.log("is_final: " , response.is_final)
-                console.log("speech_final: " , response.speech_final)
-
-                if (response.speech_final == true) {
-                  one_speech += (response.channel.alternatives[0].transcript)
-                  console.log(one_speech)
-                  queue.push(one_speech)
-                  one_speech = []
-                  if (is_waiting == false) {
-                    is_waiting = true
-                    sendDataToPython({
-                      value: response.channel.alternatives[0].transcript,
-                      dataType: "json",
-                    });
-                    queue = []
-                    setTimeout(reset_flag, 5000)
+                  if (response.speech_final == true) {
+                    one_speech += (response.channel.alternatives[0].transcript)
+                    console.log(one_speech)
+                    queue.push(one_speech)
+                    one_speech = []
+                    if (is_waiting == false) {
+                      is_waiting = true
+                      sendDataToPython({
+                        value: response.channel.alternatives[0].transcript,
+                        dataType: "json",
+                      });
+                      queue = []
+                      setTimeout(reset_flag, 5000)
+                    }
                   }
-                else {
-                  one_speech += response.channel.alternatives[0].transcript
                 }
-                }
+              };
+              ws.onclose = () => {
+                console.log({ event: 'onclose' })
               }
-            };
-            ws.onclose = () => {
-              console.log({ event: 'onclose' })
-            }
 
-            ws.onerror = (error) => {
-              console.log({ event: 'onerror', error })
-            }
+              ws.onerror = (error) => {
+                console.log({ event: 'onerror', error })
+              }
+            });
+        });
 
-            
-
-        document.getElementById("stop").addEventListener("click", () => {
+        // Stoppe die Aufnahme automatisch beim Schließen der Seite
+        window.addEventListener('beforeunload', () => {
             if (mediaRecorder) {
                 mediaRecorder.stop();
                 console.log("MediaRecorder gestoppt");
@@ -131,7 +143,11 @@
                 ws.close();
                 console.log("WebSocket geschlossen");
             }
-        }) }) });
+            if (audioContext) {
+                audioContext.close();
+                console.log("AudioContext geschlossen");
+            }
+        });
 
         var myInput = document.getElementById("myinput");
 
@@ -155,6 +171,14 @@
         else {
           endpointing = ""
         }
+        
+        if (event.data.args.volume !== undefined) {
+          volumeValue = event.data.args.volume;
+          if (gainNode) {
+            gainNode.gain.value = volumeValue / 100;
+          }
+        }
+        
         console.log(endpointing)
         
         }
@@ -179,7 +203,7 @@
 
         // Optionally, if the automatic height computation fails you, give this component a height manually
         // by commenting out below:
-        //setFrameHeight(200);
+        setFrameHeight(0);
     </script>
 </body>
 </html>

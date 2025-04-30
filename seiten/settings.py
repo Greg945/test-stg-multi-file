@@ -5,9 +5,20 @@ import datetime
 import csv
 import os
 
-if 'config_name_input' not in st.session_state:
-    st.session_state.config_name_input = "Config"
 
+
+#if 'config_name_input' not in st.session_state:
+#    st.session_state.config_name_input = "Config"
+
+#st.session_state.config_selector = st.session_state.config_selector
+
+print(st.session_state)
+
+if 'config_name_input' not in st.session_state:
+    st.session_state.config_name_input= "default_config"
+
+if "config_selector" not in st.session_state:
+    st.session_state.config_selector = st.session_state.config_name_input
 
 st.header("Settings")
 
@@ -62,7 +73,8 @@ def save_json():
         "deepgram_model": st.session_state.config_model,
         "system_prompt": st.session_state.config_sys_prompt,
         "diarize": st.session_state.config_diarize_toggle,
-        "endpointing": st.session_state.config_endpointing
+        "endpointing": st.session_state.config_endpointing,
+        "volume": st.session_state.config_volume
     }
     print(full_data)
     
@@ -90,11 +102,13 @@ try:
         default_prompt = data.get("system_prompt", 'Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit "Ignoriert". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage brauchst.')
         default_diarize = data.get("diarize", False)
         default_endpointing = data.get("endpointing", False)
+        default_volume = data.get("volume", 100)
 except FileNotFoundError:
     default_model = "nova-2"
     default_prompt = 'Du bist ein mithörender Assistent in einem Klassenzimmer. Wenn du eine Frage hörst, beantworte sie bitte normal. Wenn es keine Frage ist, antworte nur mit "Ignoriert". Außerdem bekommst du immer den Konversationsverlauf, den du nur benutzt, falls du Informationen daraus zur Beantwortung der Frage braucht.'
     default_diarize = False
     default_endpointing = False
+    default_volume = 100
 
 st.text_input("Deepgram Model", value=default_model, key="config_model")
 
@@ -103,6 +117,8 @@ st.text_input("System Prompt", value=default_prompt, key="config_sys_prompt")
 st.toggle("Diarize", value=default_diarize, key="config_diarize_toggle")
 
 st.text_input("Endpointing (False for off)", value=default_endpointing, key="config_endpointing")
+
+st.slider("Mikrofonlautstärke (%)", min_value=0, max_value=1000, step=50, value=default_volume, key="config_volume")
 
 # Speichern als JSON
 st.text_input("Config Name", key="config_name_input")

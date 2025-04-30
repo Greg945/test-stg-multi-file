@@ -16,10 +16,13 @@ from pathlib import Path
 import sys
 
 
+
+
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 google_search_tool = Tool(google_search=GoogleSearch())
 
+st.session_state.aaatest_page = "WORKS"
 
 if 'search' not in st.session_state:
     st.session_state.search = False
@@ -37,8 +40,11 @@ if "prompt" not in st.session_state:
 if 'config_loaded' not in st.session_state:
     st.session_state.config_loaded = False
 
+if 'config_name_input' not in st.session_state:
+    st.session_state.config_name_input= "default_config"
+
 if 'config_selector' not in st.session_state:
-    st.session_state.config_selector= "default_config"
+    st.session_state.config_selector= st.session_state.config_name_input
 
 
 if 'expander_state' not in st.session_state:
@@ -71,6 +77,11 @@ def load_config(config_name=None):
             st.session_state.config_endpointing = config_data["endpointing"]
         else:
             st.session_state.config_endpointing = False
+            
+        if "volume" in config_data:
+            st.session_state.config_volume = config_data["volume"]
+        else:
+            st.session_state.config_volume = 100
             
         if "stundenplan" in config_data:
             st.session_state.stundenplan = config_data["stundenplan"]
@@ -291,7 +302,7 @@ def lang_switch():
 
 
 ##################################  UI  #########################################
-
+st.write("#")
 st.title("STG")
 
 config_files = []
@@ -326,8 +337,8 @@ st.selectbox("Sprache",("Deutsch", "Englisch", "Französisch"), key="sprache", i
 
 if st.toggle("STT?"):
     lang_switch()
-    print(st.session_state.language_code, st.session_state.config_model, st.session_state.config_diarize_toggle, st.session_state.config_endpointing)
-    value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.config_diarize_toggle, endpointing=st.session_state.config_endpointing)
+    print(st.session_state.language_code, st.session_state.config_model, st.session_state.config_diarize_toggle, st.session_state.config_endpointing, st.session_state.config_volume)
+    value = deepgramcomp(language=st.session_state.language_code, model=st.session_state.config_model, diarize=st.session_state.config_diarize_toggle, endpointing=st.session_state.config_endpointing, volume=st.session_state.config_volume)
     st.write("Received", value)
     
     st.text_area(f"Antwort  auf speech:", gemini_request(value), height=100)
