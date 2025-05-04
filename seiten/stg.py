@@ -14,6 +14,7 @@ import PIL
 import io
 from pathlib import Path
 import sys
+import base64
 
 
 
@@ -130,15 +131,23 @@ def save_chat_history():
     week_dir = "history/" + str(datetime.date.today().isocalendar().week)
     CHAT_FILE = week_dir + "/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
     
-    context = [
-    {
-        "user": message.get("user"), 
-        "assistant": message.get("assistant")
-    } 
-    for message in st.session_state.context
-    ]
+    context = []
+    for message in st.session_state.context:
+        message_dict = {
+            "time": message.get("time"),
+            "user": message.get("user"),
+            "assistant": message.get("assistant")
+        }
+        if "file" in message:
+            # Konvertiere die Bilder in Base64
+            message_dict["file"] = []
+            for image in message["file"]:
+                buffer = io.BytesIO()
+                image.save(buffer, format="JPEG")
+                base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                message_dict["file"].append(base64_image)
+        context.append(message_dict)
     print(context)
-
 
     try:
         # Erstelle den history-Ordner, falls er nicht existiert
@@ -157,38 +166,7 @@ def save_chat_history():
         st.error(f"Fehler beim Speichern des Chat-Verlaufs: {e}")
 
 def load_chat_history():
-    # HISTORY_FILE = "history/" + str(datetime.date.today().isocalendar().week) +  "/chat_history" + aktuelles_fach() + str(datetime.date.today()) + ".json"
-    # try:
-    #     if os.path.exists():
-    #         with open(CHAT_FILE, 'r', encoding='utf-8') as f:
-    #             return json.load(f)
-    # except Exception as e:
-    #     st.error(f"Fehler beim Laden des Chat-Verlaufs: {e}")
-    # #return [{"role": "user", "content": "hallo"}]  # Standardwert falls keine Historie existiert
-
-
-    # letzte_stunde = []
-    # with open("stundenplan.csv", newline='', encoding='utf-8') as f:
-    #     reader = csv.DictReader(f)
-    #     for row in reader:
-    #         if row["Fach"] == "Mathe":
-
-    #         # start = datetime.datetime.strptime(row["Start"], "%H:%M").time()
-    #         # ende = datetime.datetime.strptime(row["Ende"], "%H:%M").time()
-    #             letzte_stunde.append({row["Fach"], row["Tag"]})
-    # print(letzte_stunde)
-    # jetzt = datetime.datetime.now()
-    # aktueller_tag = jetzt.strftime("%A")
-    # if len(letzte_stunde) > 1:
-    #     for s in letzte_stunde:
-    #         print(s)
-    #         if aktueller_tag in s:
-    #             letzte_stunde.remove(s)
-    # print(letzte_stunde)
-
-
     start_folder_path = Path("history")
-
     search_term = "mathe"
 
     print(f"Durchsuche Ordner '{start_folder_path}' und Unterordner nach Dateien mit '{search_term}' im Namen...")
@@ -217,12 +195,17 @@ def load_chat_history():
     try:
         with open(newest_file.resolve(), 'r', encoding='utf-8') as f:
             letzte_stunde_history = json.load(f)
+            
+            # Konvertiere Base64-Bilder zurück in PIL-Images
+            for message in letzte_stunde_history:
+                if "file" in message:
+                    message["file"] = [PIL.Image.open(io.BytesIO(base64.b64decode(img))) for img in message["file"]]
+                    
     except Exception as e:
         st.error(f"Fehler beim Laden des Chat-Verlaufs: {e}")
     print(letzte_stunde_history)
     
     gemini_request(letzte_stunde_history, "summary")
-    
 
 # def load_chat_history():
 #     try:
@@ -278,12 +261,14 @@ def gemini_request(text, type="speech", file=None):
         import traceback
         print(traceback.format_exc())
 
+    jetzt = datetime.datetime.now()
+
     if file:
-        st.session_state.context.append({"user": text , "file": [image_input], "assistant": response_text})
+        st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": text , "file": [image_input], "assistant": response_text})
     elif not file and type != "summary":
-        st.session_state.context.append({"user": text, "assistant": response_text})
+        st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": text, "assistant": response_text})
     else:
-        st.session_state.context.append({"user": "Chat_history der Letzten Stunde", "assistant": response_text})
+        st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": "Chat_history der Letzten Stunde", "assistant": response_text})
 
     save_chat_history()
     print('Apicall for:', text)
@@ -348,7 +333,8 @@ with chat_box:
     for message in st.session_state.context:
         st.chat_message("user").write(message["user"])
         if "file" in message:
-            st.image(message["file"])
+            for image in message["file"]:
+                st.image(image)
         st.chat_message("assistant").write(message["assistant"])
 if prompt := st.chat_input("Say something", accept_file="multiple", file_type=["jpg", "jpeg", "png", "pdf"],):
     with chat_box:

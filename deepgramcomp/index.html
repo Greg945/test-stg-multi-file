@@ -43,7 +43,7 @@
         let deepgram_model = "nova-2"
         let diarize = ""
         let endpointing = ""
-        let volumeValue = 100
+        let volumeValue = 100 
         let audioContext = null
         let gainNode = null
         let audioStream = null
@@ -65,18 +65,29 @@
               console.log({ stream })
               
               // Audio-Kontext und Gain-Node erstellen
-              audioContext = new (window.AudioContext || window.webkitAudioContext)();
-              gainNode = audioContext.createGain();
-              gainNode.gain.value = volumeValue / 100;
-              
-              // Audio-Stream durch Gain-Node leiten
-              const source = audioContext.createMediaStreamSource(stream);
-              source.connect(gainNode);
-              
-              // Neuen MediaStream mit angepasster Lautstärke erstellen
-              const destination = audioContext.createMediaStreamDestination();
-              gainNode.connect(destination);
-              audioStream = destination.stream;
+              //audioContext = new (window.AudioContext || window.webkitAudioContext)();
+              //gainNode = audioContext.createGain();
+              //gainNode.gain.value = 4 //volumeValue / 100;
+              //
+              //// Audio-Stream durch Gain-Node leiten
+              //const source = audioContext.createMediaStreamSource(stream);
+              //source.connect(gainNode);
+
+              //// Delay-Node erstellen
+              //const delayNode = audioContext.createDelay(5.0); // Erlaube bis zu 5 Sekunden Delay
+              //delayNode.delayTime.value = 2.0; // Setze tatsächlichen Delay auf 2 Sekunden
+              //gainNode.connect(delayNode);
+              //
+              //// Neuen MediaStream mit angepasster Lautstärke erstellen
+              //const destination = audioContext.createMediaStreamDestination();
+              //delayNode.connect(destination);
+              //audioStream = destination.stream;
+
+              //// Testfunktion für Lautstärke
+              //const testAudio = new Audio();
+              //testAudio.srcObject = audioStream;
+              //testAudio.volume = volumeValue / 100;
+              //testAudio.play();
               
               // MediaRecorder mit dem neuen Stream erstellen
               const mediaRecorder = new MediaRecorder(audioStream);
