@@ -80,7 +80,7 @@
               
               // Neuen MediaStream mit angepasster Lautstärke erstellen
               const destination = audioContext.createMediaStreamDestination();
-              delayNode.connect(destination);
+              gainNode.connect(destination);
               audioStream = destination.stream;
 
               // Testfunktion für Lautstärke
