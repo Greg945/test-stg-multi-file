@@ -3,36 +3,80 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-st.session_state.test_selector = "Home phone"
+import os
+import uuid
+from pathlib import Path
+
+from PIL import Image
+from io import BytesIO
+import base64
 
 
-option = st.selectbox(
-    "How would you like to be contacted?",
-    ("Email", "Home phone", "Mobile phone"),
-    index=None,
-    key="test_selector"
-)
+if "uploaded_images" not in st.session_state:
+    st.session_state.uploaded_images = []
 
-st.write("You selected:", option)
+# st.session_state.test_selector = "Home phone"
 
-st.write(st.session_state)
 
-df = pd.DataFrame(
-    {
-        "name": ["Roadmap", "Extras", "Issues"],
-        "url": ["https://roadmap.streamlit.app", "https://extras.streamlit.app", "https://issues.streamlit.app"],
-        "stars": [1, 2, 3],
-        "views_history": [1, 2, 3],
-    }
-)
+# option = st.selectbox(
+#     "How would you like to be contacted?",
+#     ("Email", "Home phone", "Mobile phone"),
+#     index=None,
+#     key="test_selector"
+# )
 
-print(df)
+# st.write("You selected:", option)
 
-event = st.dataframe(
-    df,
-    #column_config=column_configuration,
-    use_container_width=True,
-    hide_index=True,
-    on_select="rerun",
-    selection_mode="multi-row",
-)
+# st.write(st.session_state)
+
+
+def image_to_base64(img):
+    if img:
+        # Öffne das Bild mit PIL
+        pil_image = Image.open(img)
+        with BytesIO() as buffer:
+            pil_image.save(buffer, "JPEG")
+            raw_base64 = base64.b64encode(buffer.getvalue()).decode()
+            return f"data:image/png;base64,{raw_base64}"
+
+
+# Chat input
+prompt = st.chat_input("Sag was und lade ein Bild hoch", accept_file="multiple", file_type=["jpg", "jpeg", "png"])
+
+
+
+if prompt and prompt["files"]:
+    #print(prompt["files"], " Laenge: ", len(prompt["files"]), " session state: ", st.session_state.uploaded_images)
+
+    for image in prompt["files"]:
+        st.session_state.uploaded_images.append(image)
+        #print(image)
+    
+    #st.write(st.session_state)
+    #print(len(st.session_state.uploaded_images))
+
+    df = pd.DataFrame([
+        {
+            "name": image.name,
+            "apps": image_to_base64(image)
+        }
+            for image in st.session_state.uploaded_images
+    ])
+    st.dataframe(
+        df,
+        column_config={
+            "apps": st.column_config.ImageColumn(
+                "Preview Image", help="Bild-Vorschau"
+            )
+        },
+        use_container_width=True,
+        hide_index=True,
+        selection_mode="multi-row",
+        row_height=100
+    )
+
+
+
+
+
+

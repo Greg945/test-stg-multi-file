@@ -14,7 +14,7 @@ import os
 
 print(st.session_state)
 
-if 'config_name_input' not in st.session_state:
+if "config_name_input" not in st.session_state:
     st.session_state.config_name_input= "default_config"
 
 if "config_selector" not in st.session_state:
