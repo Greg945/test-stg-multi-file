@@ -112,7 +112,7 @@ except FileNotFoundError:
 
 st.text_input("Deepgram Model", value=default_model, key="config_model")
 
-st.text_input("System Prompt", value=default_prompt, key="config_sys_prompt")
+st.text_area("System Prompt", value=default_prompt, key="config_sys_prompt")
 
 st.toggle("Diarize", value=default_diarize, key="config_diarize_toggle")
 

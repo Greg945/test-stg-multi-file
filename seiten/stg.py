@@ -51,6 +51,11 @@ if 'config_selector' not in st.session_state:
 if 'expander_state' not in st.session_state:
     st.session_state.expander_state = False
 
+if 'context_open' not in st.session_state:
+    st.session_state.context_open = False
+    print("falssseeee")
+
+
 def load_config(config_name=None):
     if config_name is None:
         config_name = st.session_state.config_selector
@@ -207,19 +212,10 @@ def load_chat_history():
     
     gemini_request(letzte_stunde_history, "summary")
 
-# def load_chat_history():
-#     try:
-#         with open(CHAT_FILE, "r") as f:
-#             return json.load(f)
-#     except FileNotFoundError:
-#         return []
-
-# def save_chat_history(chat_history):
-#     with open(CHAT_FILE, "w") as f:
-#         json.dump(chat_history, f)
-
 
 def gemini_request(text, type="speech", file=None):
+    if text == None:
+        return "leer"
     context = st.session_state.context
     search_enabled = st.session_state.get("search", False)
     try:
@@ -263,12 +259,20 @@ def gemini_request(text, type="speech", file=None):
 
     jetzt = datetime.datetime.now()
 
-    if file:
-        st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": text , "file": [image_input], "assistant": response_text})
-    elif not file and type != "summary":
-        st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": text, "assistant": response_text})
+    if response_text == "Ignoriert" and st.session_state.context_open == True: ####villeicht noch ignoriert aender bzw sys prompt anpassen
+        st.session_state.context[-1]['user'] += " " + text
     else:
-        st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": "Chat_history der Letzten Stunde", "assistant": response_text})
+        if file:
+            st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": text , "file": [image_input], "assistant": response_text})
+        elif not file and type != "summary" and st.session_state.context_open == True:
+            st.session_state.context[-1]['user'] += text
+            st.session_state.context[-1]['assistant'] = response_text
+            st.session_state.context_open = False
+        elif not file and type != "summary" and st.session_state.context_open == False:
+            st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": text})
+            st.session_state.context_open = True
+        else:
+            st.session_state.context.append({"time": jetzt.strftime("%H:%M:%S"), "user": "Chat_history der Letzten Stunde", "assistant": response_text})
 
     save_chat_history()
     print('Apicall for:', text)
@@ -335,7 +339,8 @@ with chat_box:
         if "file" in message:
             for image in message["file"]:
                 st.image(image)
-        st.chat_message("assistant").write(message["assistant"])
+        if "assistant" in message:
+            st.chat_message("assistant").write(message["assistant"])
 if prompt := st.chat_input("Say something", accept_file="multiple", file_type=["jpg", "jpeg", "png", "pdf"],):
     with chat_box:
         if st.session_state.prompt != "":
